@@ -56,6 +56,7 @@ export default function Quiz() {
   const [submittedAt, setSubmittedAt] = useState<string | null>(null);
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedRef = useRef(false);
+  const pdfBlobRef = useRef<Blob | null>(null);
 
   const screen = SCREENS[i] ?? SCREENS[0];
 
@@ -242,31 +243,48 @@ export default function Quiz() {
   // Builds a real PDF in the browser and downloads it — no print dialog, so
   // pages break where we say they do. The renderer is ~1MB, so it is only
   // fetched when someone actually asks for the file.
+  const pdfFilename = `what-drives-you-${(person.name || "results").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-")}.pdf`;
+
+  async function buildPdfBlob() {
+    const [{ pdf }, { ResultsPdf }] = await Promise.all([import("@react-pdf/renderer"), import("@/lib/ResultsPdf")]);
+    const stamp = submittedAt ? new Date(submittedAt) : new Date();
+    const data = {
+      person,
+      completedAt: stamp.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
+      totals,
+      topTwo: ranked.slice(0, 2),
+      transcript,
+    };
+    return pdf(<ResultsPdf data={data} />).toBlob();
+  }
+
   async function downloadPdf() {
     setPdfBusy(true);
     try {
-      const [{ pdf }, { ResultsPdf }] = await Promise.all([import("@react-pdf/renderer"), import("@/lib/ResultsPdf")]);
-      const stamp = submittedAt ? new Date(submittedAt) : new Date();
-      const data = {
-        person,
-        completedAt: stamp.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
-        totals,
-        topTwo: ranked.slice(0, 2),
-        transcript,
-      };
-      const blob = await pdf(<ResultsPdf data={data} />).toBlob();
+      const blob = pdfBlobRef.current ?? (await buildPdfBlob());
+      pdfBlobRef.current = blob;
+      const file = new File([blob], pdfFilename, { type: "application/pdf" });
+
+      // iOS Safari ignores the download attribute on blob URLs — it just opens
+      // the PDF in a new tab. The share sheet is the real "save" on iOS: it has
+      // "Save to Files". Must run inside the click gesture, so the blob is
+      // pre-built while the results screen is on screen.
+      const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
+      if (nav.canShare?.({ files: [file] }) && nav.share) {
+        try {
+          await nav.share({ files: [file], title: pdfFilename });
+          return;
+        } catch (err) {
+          // AbortError = they dismissed the sheet; anything else falls through.
+          if (err instanceof DOMException && err.name === "AbortError") return;
+        }
+      }
+
       const url = URL.createObjectURL(blob);
-      const filename = `what-drives-you-${(person.name || "results").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-")}.pdf`;
       const a = document.createElement("a");
-      const supportsDownload: boolean = "download" in a;
       a.href = url;
       a.rel = "noopener";
-      if (supportsDownload) {
-        a.download = filename;
-      } else {
-        // Older iOS Safari ignores `download` — open it so they can use Share → Save to Files.
-        a.target = "_blank";
-      }
+      a.download = pdfFilename;
       // Safari only honours the click on an anchor that is in the document.
       document.body.appendChild(a);
       a.click();
@@ -279,6 +297,24 @@ export default function Quiz() {
       setPdfBusy(false);
     }
   }
+
+  // Build the PDF ahead of time once the results are up. On iOS the share sheet
+  // must open inside the tap gesture — no time for a 1MB import and a render.
+  useEffect(() => {
+    if (screen.kind !== "results" || pdfBlobRef.current) return;
+    let cancelled = false;
+    buildPdfBlob()
+      .then((blob) => {
+        if (!cancelled) pdfBlobRef.current = blob;
+      })
+      .catch(() => {
+        /* the click path will retry and surface the error */
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen.kind, answers, person, submittedAt]);
 
   const SEGS = 12;
   const filled = Math.round((i / (SCREENS.length - 1)) * SEGS);
