@@ -10,8 +10,9 @@ service cloud.firestore {
       allow create: if request.resource.data.person.name is string
                     && request.resource.data.person.name.size() > 0
                     && request.resource.data.person.name.size() < 200;
-      allow read: if true;
-      allow update, delete: if false;
+      // Reads and deletes are used by the password-gated /admin route.
+      allow read, delete: if true;
+      allow update: if false;
     }
   }
 }

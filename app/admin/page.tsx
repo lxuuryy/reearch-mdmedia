@@ -30,6 +30,8 @@ export default function AdminPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   async function load(e?: React.FormEvent) {
     e?.preventDefault();
@@ -49,6 +51,26 @@ export default function AdminPage() {
       setRows(null);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function remove(id: string) {
+    setDeleting(id);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/responses", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password, id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete");
+      setRows((prev) => (prev ? prev.filter((r) => r.id !== id) : prev));
+      setConfirming(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setDeleting(null);
     }
   }
 
@@ -150,9 +172,23 @@ export default function AdminPage() {
               })}
             </div>
 
-            <button onClick={() => setOpen(open === r.id ? null : r.id)} style={{ ...btn, marginTop: 14 }}>
-              {open === r.id ? "Hide answers" : "Show answers"}
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+              <button onClick={() => setOpen(open === r.id ? null : r.id)} style={btn}>
+                {open === r.id ? "Hide answers" : "Show answers"}
+              </button>
+
+              {confirming === r.id ? (
+                <>
+                  <span style={{ fontSize: 13, color: "#B4483C" }}>Delete this permanently?</span>
+                  <button onClick={() => remove(r.id)} disabled={deleting === r.id} style={{ ...btn, borderColor: "#B4483C", color: "#B4483C" }}>
+                    {deleting === r.id ? "Deleting…" : "Yes, delete"}
+                  </button>
+                  <button onClick={() => setConfirming(null)} style={btn}>Cancel</button>
+                </>
+              ) : (
+                <button onClick={() => setConfirming(r.id)} style={{ ...btn, color: "#B4483C" }}>Delete</button>
+              )}
+            </div>
 
             {open === r.id && (
               <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 9 }}>

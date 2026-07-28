@@ -8,6 +8,7 @@ import { firebaseConfigured, getDb } from "@/lib/firebase";
 const ACCENT = "#1B3FE0";
 const ON_ACCENT = "#FFFFFF";
 const STORAGE_KEY = "mdm-drives-quiz";
+const SUBMITTED_KEY = "mdm-drives-quiz-submitted";
 const AUTO_ADVANCE = true;
 const SHOW_FACILITATOR_NOTES = false;
 
@@ -51,11 +52,14 @@ export default function Quiz() {
   const [hydrated, setHydrated] = useState(false);
   const [save, setSave] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [saveError, setSaveError] = useState("");
+  const [submittedAt, setSubmittedAt] = useState<string | null>(null);
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedRef = useRef(false);
 
   const screen = SCREENS[i] ?? SCREENS[0];
 
+  // Restoring saved progress from localStorage; runs once on mount.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -65,11 +69,22 @@ export default function Quiz() {
         if (parsed.answers) setAnswers(parsed.answers);
         if (parsed.person) setPerson(parsed.person);
       }
+      const done = localStorage.getItem(SUBMITTED_KEY);
+      if (done) {
+        savedRef.current = true;
+        setSave("saved");
+        try {
+          setSubmittedAt(JSON.parse(done).at ?? "");
+        } catch {
+          setSubmittedAt("");
+        }
+      }
     } catch {
       /* ignore */
     }
     setHydrated(true);
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const persist = useCallback((next: { i: number; answers: Answers; person: Person }) => {
     try {
@@ -129,7 +144,7 @@ export default function Quiz() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const s = SCREENS[i];
-      if (!s) return;
+      if (!s || submittedAt !== null) return;
       const el = document.activeElement;
       if (el && (el.tagName === "TEXTAREA" || el.tagName === "INPUT")) return;
       if (s.kind === "rating" && /^[1-5]$/.test(e.key)) {
@@ -144,7 +159,7 @@ export default function Quiz() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [i, answer, next, back]);
+  }, [i, answer, next, back, submittedAt]);
 
   const totals = DRIVERS.map((d) => ({
     d,
@@ -176,6 +191,7 @@ export default function Quiz() {
     const db = getDb();
     if (!db) return;
     savedRef.current = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSave("saving");
     addDoc(collection(db, "responses"), {
       person: { name: person.name.trim(), email: person.email.trim(), team: person.team.trim() },
@@ -196,7 +212,16 @@ export default function Quiz() {
       completedAt: serverTimestamp(),
       userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "",
     })
-      .then(() => setSave("saved"))
+      .then(() => {
+        setSave("saved");
+        const at = new Date().toISOString();
+        setSubmittedAt(at);
+        try {
+          localStorage.setItem(SUBMITTED_KEY, JSON.stringify({ at, name: person.name.trim() }));
+        } catch {
+          /* ignore */
+        }
+      })
       .catch((err: unknown) => {
         savedRef.current = false;
         setSave("error");
@@ -206,6 +231,7 @@ export default function Quiz() {
   }, [screen.kind, hydrated]);
 
   const restart = () => {
+    if (submittedAt !== null) return; // one submission per browser
     setI(0);
     setAnswers({});
     setPerson({ name: "", email: "", team: "" });
@@ -244,6 +270,9 @@ export default function Quiz() {
   const n = "n" in screen ? screen.n : 0;
   const choiceKey = ("scenario" in screen ? "s" : "c") + n;
   const rawOpts = isChoice ? ("scenario" in screen ? SCENARIOS[n].o : REFLECT[n].options ?? []) : [];
+
+  // Already submitted from this browser — no second run, results stay readable.
+  const locked = submittedAt !== null && !isResults;
 
   return (
     <div
@@ -295,6 +324,7 @@ export default function Quiz() {
               onClick={restart}
               title="Start over"
               style={{
+                display: submittedAt !== null ? "none" : "flex",
                 width: 24,
                 height: 24,
                 borderRadius: "50%",
@@ -304,7 +334,6 @@ export default function Quiz() {
                 fontSize: 15,
                 lineHeight: 1,
                 cursor: "pointer",
-                display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 flex: "none",
@@ -326,7 +355,37 @@ export default function Quiz() {
               animationName: flip ? "fadeUpA" : "fadeUpB",
             }}
           >
-            {isIntro && (
+            {locked && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 14, flex: 1, justifyContent: "center" }}>
+                <div style={label}>MD Media · Already submitted</div>
+                <h1 style={{ fontSize: 28, lineHeight: 1.1, letterSpacing: "-0.025em", fontWeight: 500, margin: 0 }}>You&apos;ve already done this one</h1>
+                <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: "#48584B", maxWidth: "44ch" }}>
+                  Your answers were submitted{submittedAt ? ` on ${new Date(submittedAt).toLocaleDateString()}` : ""} and they&apos;re with Divina and Abby. You
+                  can still read your results below.
+                </p>
+                <button
+                  onClick={() => setI(SCREENS.length - 1)}
+                  style={{
+                    alignSelf: "flex-start",
+                    border: "none",
+                    padding: "12px 26px",
+                    borderRadius: 12,
+                    fontSize: 14.5,
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    background: ACCENT,
+                    color: ON_ACCENT,
+                  }}
+                >
+                  View my results
+                </button>
+                <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.5, color: "#A6AEA0", maxWidth: "44ch" }}>
+                  Need to redo it? Ask Divina or Abby to delete your submission.
+                </p>
+              </div>
+            )}
+
+            {!locked && isIntro && (
               <div style={{ display: "flex", flexDirection: "column", gap: 16, flex: 1 }}>
                 <div style={label}>MD Media · 10 minutes</div>
                 <h1 style={{ fontSize: 32, lineHeight: 1.08, letterSpacing: "-0.025em", fontWeight: 500, margin: 0 }}>What drives you</h1>
@@ -360,7 +419,7 @@ export default function Quiz() {
               </div>
             )}
 
-            {(isRating || isChoice || isOpen) && (
+            {!locked && (isRating || isChoice || isOpen) && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14, flex: 1 }}>
                 <div style={label}>{qLabel}</div>
                 <h2 style={{ fontSize: 23, lineHeight: 1.22, letterSpacing: "-0.02em", fontWeight: 500, margin: 0, maxWidth: "26ch" }}>{qText}</h2>
@@ -563,7 +622,10 @@ export default function Quiz() {
             )}
           </div>
 
-          <div className="no-print" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, paddingTop: 2 }}>
+          <div
+            className="no-print"
+            style={{ display: locked ? "none" : "flex", alignItems: "center", justifyContent: "space-between", gap: 12, paddingTop: 2 }}
+          >
             <button
               onClick={back}
               style={{ border: "none", background: "none", padding: "9px 4px", fontSize: 14, cursor: "pointer", color: i === 0 ? "transparent" : "#6C7A6E" }}
