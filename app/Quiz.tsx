@@ -256,11 +256,23 @@ export default function Quiz() {
       };
       const blob = await pdf(<ResultsPdf data={data} />).toBlob();
       const url = URL.createObjectURL(blob);
+      const filename = `what-drives-you-${(person.name || "results").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-")}.pdf`;
       const a = document.createElement("a");
+      const supportsDownload: boolean = "download" in a;
       a.href = url;
-      a.download = `what-drives-you-${(person.name || "results").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-")}.pdf`;
+      a.rel = "noopener";
+      if (supportsDownload) {
+        a.download = filename;
+      } else {
+        // Older iOS Safari ignores `download` — open it so they can use Share → Save to Files.
+        a.target = "_blank";
+      }
+      // Safari only honours the click on an anchor that is in the document.
+      document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      // Revoking immediately cancels the download in Safari and Firefox.
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : String(err));
     } finally {
