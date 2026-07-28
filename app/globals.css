@@ -61,16 +61,29 @@ button:hover {
   }
 }
 
-/* Mobile: the card fills the viewport and only its content area scrolls, so the
-   page itself never scrolls. 16px inputs + the viewport meta stop iOS zooming. */
+/* Nothing is ever clipped: text always wraps, never overflows sideways. */
+h1,
+h2,
+p,
+span,
+div,
+button,
+label {
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: auto;
+}
+
+/* Mobile. The card fills the screen when content is short (so a question screen
+   needs no scrolling) but GROWS past it when content is long — the intro and the
+   results page scroll normally rather than getting cut off.
+   16px inputs + the viewport meta stop iOS zooming on focus. */
 @media (max-width: 700px) {
   .page {
-    height: 100dvh;
-    min-height: 0 !important;
+    min-height: 100dvh;
     align-items: stretch !important;
     padding: 10px !important;
-    overflow: hidden;
-    overscroll-behavior: none;
+    background-image: none !important;
   }
 
   .shell {
@@ -84,17 +97,15 @@ button:hover {
 
   .card {
     flex: 1;
-    min-height: 0 !important;
-    padding: 16px 16px 12px !important;
+    min-height: calc(100dvh - 20px) !important;
+    padding: 18px 18px 14px !important;
     border-radius: 18px !important;
-    gap: 14px !important;
+    gap: 16px !important;
   }
 
+  /* No fixed heights inside — every screen sizes to its own content. */
   .content {
     min-height: 0;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    padding-right: 2px;
   }
 
   input,
@@ -103,11 +114,17 @@ button:hover {
   }
 }
 
-@media (max-width: 700px) and (max-height: 700px) {
+/* Narrow phones: pull the biggest type down so headings and statements
+   still break onto sensible lines. */
+@media (max-width: 400px) {
   .card h1 {
     font-size: 26px !important;
   }
   .card h2 {
     font-size: 20px !important;
+    max-width: none !important;
+  }
+  .card {
+    padding: 16px 14px 12px !important;
   }
 }
