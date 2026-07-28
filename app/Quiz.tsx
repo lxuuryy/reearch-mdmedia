@@ -276,6 +276,7 @@ export default function Quiz() {
 
   return (
     <div
+      className="page"
       style={{
         minHeight: "100vh",
         width: "100%",
@@ -290,13 +291,13 @@ export default function Quiz() {
         padding: "32px 16px",
       }}
     >
-      <div style={{ position: "relative", width: "100%", maxWidth: 520 }}>
+      <div className="shell" style={{ position: "relative", width: "100%", maxWidth: 520 }}>
         <div
-          className="no-print"
+          className="no-print decor"
           style={{ position: "absolute", inset: "20px -16px -10px 20px", background: "#FFFFFF", opacity: 0.45, borderRadius: 24, transform: "rotate(2deg)" }}
         />
         <div
-          className="no-print"
+          className="no-print decor"
           style={{ position: "absolute", inset: "10px 10px -4px -15px", background: "#FFFFFF", opacity: 0.6, borderRadius: 24, transform: "rotate(-1.8deg)" }}
         />
 
@@ -345,6 +346,7 @@ export default function Quiz() {
 
           <div
             key={i}
+            className="content"
             style={{
               flex: 1,
               display: "flex",

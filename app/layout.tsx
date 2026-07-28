@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Outfit } from "next/font/google";
 import "./globals.css";
 
@@ -17,6 +17,15 @@ const plexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "What drives you · MD Media",
   description: "A 10-minute reflection on what motivates you at work.",
+};
+
+// maximumScale + userScalable stop iOS zooming the page when an input is focused.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
