@@ -11,30 +11,19 @@
     </style>
   </head>
   <body>
-    <figure><iframe id="a" src="/"></iframe><figcaption>390 wide, 700 tall (phone with browser chrome)</figcaption></figure>
-    <figure><iframe id="b" src="/" style="width: 360px; height: 640px"></iframe><figcaption>360x640 small phone</figcaption></figure>
     <script>
-      // Drive both frames to a rating screen so the question layout is visible.
-      function step(frame, times) {
-        const w = frame.contentWindow;
-        const d = frame.contentDocument;
-        const input = d.querySelector('input[type="text"]');
-        if (!input) return;
-        const setter = Object.getOwnPropertyDescriptor(w.HTMLInputElement.prototype, "value").set;
-        setter.call(input, "Preview Person");
-        input.dispatchEvent(new w.Event("input", { bubbles: true }));
-        setTimeout(() => {
-          const btns = [...d.querySelectorAll("button")];
-          const start = btns.find((b) => b.textContent.trim() === "Start");
-          if (start) start.click();
-        }, 120);
-      }
-      window.addEventListener("load", () => {
-        setTimeout(() => {
-          step(document.getElementById("a"));
-          step(document.getElementById("b"));
-        }, 900);
-      });
+      // Seed a finished run so the results screen renders. SUBMITTED_KEY is set
+      // too, so the preview never writes a junk document to Firestore.
+      const answers = {};
+      for (let n = 0; n < 24; n++) answers["r" + n] = ((n * 7) % 5) + 1;
+      answers["c0"] = "A campaign I ran end to end that actually moved their numbers.";
+      answers["c1"] = "Running a pitch on my own.";
+      answers["c2"] = 2;
+      for (let n = 0; n < 12; n++) answers["s" + n] = n % 4;
+      localStorage.setItem("mdm-drives-quiz", JSON.stringify({ i: 40, answers, person: { name: "Preview Person", email: "p@mdmedia.com", team: "Accounts" } }));
+      localStorage.setItem("mdm-drives-quiz-submitted", JSON.stringify({ at: new Date().toISOString(), name: "Preview Person" }));
     </script>
+    <figure><iframe src="/?intro=1" onload="this.contentWindow.localStorage.removeItem('x')"></iframe><figcaption>results 390x700</figcaption></figure>
+    <figure><iframe src="/" style="width: 360px; height: 640px"></iframe><figcaption>results 360x640</figcaption></figure>
   </body>
 </html>

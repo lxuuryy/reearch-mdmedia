@@ -52,6 +52,7 @@ export default function Quiz() {
   const [hydrated, setHydrated] = useState(false);
   const [save, setSave] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [saveError, setSaveError] = useState("");
+  const [pdfBusy, setPdfBusy] = useState(false);
   const [submittedAt, setSubmittedAt] = useState<string | null>(null);
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedRef = useRef(false);
@@ -237,6 +238,35 @@ export default function Quiz() {
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen.kind, hydrated]);
+
+  // Builds a real PDF in the browser and downloads it — no print dialog, so
+  // pages break where we say they do. The renderer is ~1MB, so it is only
+  // fetched when someone actually asks for the file.
+  async function downloadPdf() {
+    setPdfBusy(true);
+    try {
+      const [{ pdf }, { ResultsPdf }] = await Promise.all([import("@react-pdf/renderer"), import("@/lib/ResultsPdf")]);
+      const stamp = submittedAt ? new Date(submittedAt) : new Date();
+      const data = {
+        person,
+        completedAt: stamp.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
+        totals,
+        topTwo: ranked.slice(0, 2),
+        transcript,
+      };
+      const blob = await pdf(<ResultsPdf data={data} />).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `what-drives-you-${(person.name || "results").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-")}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPdfBusy(false);
+    }
+  }
 
   const SEGS = 12;
   const filled = Math.round((i / (SCREENS.length - 1)) * SEGS);
@@ -531,7 +561,7 @@ export default function Quiz() {
                   {totals.map((t) => {
                     const top = topNames.includes(t.d.name);
                     return (
-                      <div key={t.d.name} style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                      <div key={t.d.name} className="pb" style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 16 }}>
                           <span style={{ fontSize: 14.5, fontWeight: 500, color: top ? "#1C3125" : "#8A9488" }}>{t.d.name}</span>
                           <span style={{ fontFamily: mono, fontSize: 10.5, letterSpacing: "0.08em", color: "#A6AEA0" }}>{t.score}/20</span>
@@ -553,7 +583,7 @@ export default function Quiz() {
                   })}
                 </div>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: 13, padding: 18, background: "#F4F6EF", borderRadius: 16 }}>
+                <div className="pb" style={{ display: "flex", flexDirection: "column", gap: 13, padding: 18, background: "#F4F6EF", borderRadius: 16 }}>
                   <div style={label}>What your top two mean</div>
                   {ranked.slice(0, 2).map((t) => (
                     <div key={t.d.name} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -567,7 +597,7 @@ export default function Quiz() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   <div style={label}>Your answers</div>
                   {transcript.map((row, k) => (
-                    <div key={k} style={{ display: "flex", flexDirection: "column", gap: 3, paddingBottom: 9, borderBottom: "1px solid #EFF2E9" }}>
+                    <div key={k} className="pb" style={{ display: "flex", flexDirection: "column", gap: 3, paddingBottom: 9, borderBottom: "1px solid #EFF2E9" }}>
                       <div style={{ fontSize: 12.5, lineHeight: 1.45, color: "#8A9488" }}>{row.q}</div>
                       <div style={{ fontSize: 13.5, lineHeight: 1.5, color: "#1C3125" }}>{row.a}</div>
                     </div>
@@ -580,7 +610,7 @@ export default function Quiz() {
                 </div>
 
                 {SHOW_FACILITATOR_NOTES && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 11, padding: 18, border: "1.5px dashed #D2D8C7", borderRadius: 16 }}>
+                  <div className="pb" style={{ display: "flex", flexDirection: "column", gap: 11, padding: 18, border: "1.5px dashed #D2D8C7", borderRadius: 16 }}>
                     <div style={label}>For Divina and Abby only</div>
                     {DRIVERS.map((d) => (
                       <div key={d.name} style={{ display: "flex", flexDirection: "column", gap: 3 }}>
@@ -611,7 +641,7 @@ export default function Quiz() {
               {i === 0 ? "" : "Back"}
             </button>
             <button
-              onClick={() => (isResults ? window.print() : next())}
+              onClick={() => (isResults ? downloadPdf() : next())}
               style={{
                 border: "none",
                 padding: "12px 26px",
@@ -624,7 +654,7 @@ export default function Quiz() {
                 color: isResults ? "#FFFFFF" : ready ? ON_ACCENT : "#A6AEA0",
               }}
             >
-              {isIntro ? "Start" : isResults ? "Print my results" : "Next"}
+              {isIntro ? "Start" : isResults ? (pdfBusy ? "Building PDF…" : "Download my results") : "Next"}
             </button>
           </div>
         </div>

@@ -52,12 +52,68 @@ button:hover {
 }
 
 @media print {
+  /* Force the browser to print background colours — without this the score
+     bars, the top-two panel and the accent fills all come out blank. */
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 14mm;
+  }
+
   .no-print {
     display: none !important;
   }
+
   html,
   body {
     background: #fff;
+    height: auto;
+  }
+
+  /* Flatten the on-screen card so the results flow as a normal document
+     across pages instead of one tall box the printer chops arbitrarily. */
+  .page {
+    display: block !important;
+    min-height: 0 !important;
+    height: auto !important;
+    padding: 0 !important;
+    background: #fff !important;
+    background-image: none !important;
+  }
+
+  .shell {
+    max-width: none !important;
+  }
+
+  .card {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+    gap: 18px !important;
+  }
+
+  .content {
+    overflow: visible !important;
+    animation: none !important;
+  }
+
+  /* Never split a driver row, a write-up or a Q&A pair across two pages. */
+  .pb {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  h1,
+  h2 {
+    break-after: avoid;
+    page-break-after: avoid;
   }
 }
 
