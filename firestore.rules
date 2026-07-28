@@ -1,0 +1,17 @@
+rules_version = '2';
+
+// Anyone with the link can submit a response. Reads are open because the /admin
+// page fetches through the web SDK (password-gated in the app, not in Firestore).
+// To lock reads down properly, switch the /api/admin/responses route to
+// firebase-admin with a service account and set `allow read: if false;` here.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /responses/{doc} {
+      allow create: if request.resource.data.person.name is string
+                    && request.resource.data.person.name.size() > 0
+                    && request.resource.data.person.name.size() < 200;
+      allow read: if true;
+      allow update, delete: if false;
+    }
+  }
+}
