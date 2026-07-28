@@ -81,7 +81,7 @@ label {
 @media (max-width: 700px) {
   .page {
     min-height: 100dvh;
-    align-items: stretch !important;
+    align-items: center !important;
     padding: 10px !important;
     background-image: none !important;
   }
@@ -95,12 +95,28 @@ label {
     display: none !important;
   }
 
+  /* Hugs its content — never forced to full height, so the Start/Next button
+     always sits right under the content instead of being pushed off-screen. */
   .card {
     flex: 1;
-    min-height: calc(100dvh - 20px) !important;
-    padding: 18px 18px 14px !important;
+    min-height: 0 !important;
+    padding: 16px 16px 14px !important;
     border-radius: 18px !important;
-    gap: 16px !important;
+    gap: 12px !important;
+  }
+
+  .card h1 {
+    font-size: 25px !important;
+  }
+
+  .card h2 {
+    font-size: 20px !important;
+    max-width: none !important;
+  }
+
+  .card p {
+    font-size: 13px !important;
+    line-height: 1.5 !important;
   }
 
   /* No fixed heights inside — every screen sizes to its own content. */
@@ -114,17 +130,19 @@ label {
   }
 }
 
-/* Narrow phones: pull the biggest type down so headings and statements
-   still break onto sensible lines. */
+/* Narrow phones: tighten further so the button stays above the fold. */
 @media (max-width: 400px) {
+  .card {
+    padding: 14px 14px 12px !important;
+    gap: 10px !important;
+  }
   .card h1 {
-    font-size: 26px !important;
+    font-size: 23px !important;
   }
   .card h2 {
-    font-size: 20px !important;
-    max-width: none !important;
+    font-size: 19px !important;
   }
-  .card {
-    padding: 16px 14px 12px !important;
+  .card p {
+    font-size: 12.5px !important;
   }
 }

@@ -113,7 +113,6 @@ export default function Quiz() {
         if (next === cur) return cur;
         setFlip((f) => !f);
         persist({ i: next, answers, person });
-        if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
         return next;
       });
     },
@@ -139,6 +138,15 @@ export default function Quiz() {
     },
     [go, i, person, persist],
   );
+
+  // Every screen change starts at the top — otherwise you land mid-page on
+  // mobile after a long screen. Instant, not smooth: smooth can be cancelled
+  // by the browser mid-scroll on touch devices.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [i]);
 
   // Keyboard shortcuts — 1-5 for ratings, a-e for choices, arrows/enter to move.
   useEffect(() => {

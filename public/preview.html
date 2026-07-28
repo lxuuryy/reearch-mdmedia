@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Mobile preview (dev only)</title>
+    <style>
+      body { margin: 0; background: #333; display: flex; gap: 14px; padding: 14px; font: 12px sans-serif; color: #fff; }
+      figure { margin: 0; }
+      iframe { width: 390px; height: 700px; border: 0; background: #fff; display: block; }
+      figcaption { padding: 4px 0; }
+    </style>
+  </head>
+  <body>
+    <figure><iframe id="a" src="/"></iframe><figcaption>390 wide, 700 tall (phone with browser chrome)</figcaption></figure>
+    <figure><iframe id="b" src="/" style="width: 360px; height: 640px"></iframe><figcaption>360x640 small phone</figcaption></figure>
+    <script>
+      // Drive both frames to a rating screen so the question layout is visible.
+      function step(frame, times) {
+        const w = frame.contentWindow;
+        const d = frame.contentDocument;
+        const input = d.querySelector('input[type="text"]');
+        if (!input) return;
+        const setter = Object.getOwnPropertyDescriptor(w.HTMLInputElement.prototype, "value").set;
+        setter.call(input, "Preview Person");
+        input.dispatchEvent(new w.Event("input", { bubbles: true }));
+        setTimeout(() => {
+          const btns = [...d.querySelectorAll("button")];
+          const start = btns.find((b) => b.textContent.trim() === "Start");
+          if (start) start.click();
+        }, 120);
+      }
+      window.addEventListener("load", () => {
+        setTimeout(() => {
+          step(document.getElementById("a"));
+          step(document.getElementById("b"));
+        }, 900);
+      });
+    </script>
+  </body>
+</html>
