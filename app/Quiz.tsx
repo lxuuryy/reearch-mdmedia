@@ -88,13 +88,17 @@ export default function Quiz() {
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  const persist = useCallback((next: { i: number; answers: Answers; person: Person }) => {
+  // Single source of truth for saving progress. Doing it here — rather than in
+  // each handler — means a save can never write a stale copy of the answers
+  // over a newer one (which silently dropped the last answer you gave).
+  useEffect(() => {
+    if (!hydrated) return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ i, answers, person }));
     } catch {
       /* ignore */
     }
-  }, []);
+  }, [i, answers, person, hydrated]);
 
   const canNext = useCallback(
     (idx: number, a: Answers, p: Person) => {
@@ -114,11 +118,10 @@ export default function Quiz() {
         const next = Math.max(0, Math.min(SCREENS.length - 1, cur + delta));
         if (next === cur) return cur;
         setFlip((f) => !f);
-        persist({ i: next, answers, person });
         return next;
       });
     },
-    [answers, person, persist],
+    [],
   );
 
   const next = useCallback(() => {
@@ -128,17 +131,13 @@ export default function Quiz() {
 
   const answer = useCallback(
     (key: string, val: AnswerValue) => {
-      setAnswers((prev) => {
-        const merged = { ...prev, [key]: val };
-        persist({ i, answers: merged, person });
-        return merged;
-      });
+      setAnswers((prev) => ({ ...prev, [key]: val }));
       if (AUTO_ADVANCE) {
         if (advanceTimer.current) clearTimeout(advanceTimer.current);
         advanceTimer.current = setTimeout(() => go(1), 240);
       }
     },
-    [go, i, person, persist],
+    [go],
   );
 
   // Every screen change starts at the top — otherwise you land mid-page on
@@ -569,11 +568,7 @@ export default function Quiz() {
                     value={String(answers["c" + n] ?? "")}
                     onChange={(e) => {
                       const val = e.target.value;
-                      setAnswers((prev) => {
-                        const merged = { ...prev, ["c" + n]: val };
-                        persist({ i, answers: merged, person });
-                        return merged;
-                      });
+                      setAnswers((prev) => ({ ...prev, ["c" + n]: val }));
                     }}
                     placeholder="Take your time."
                     style={{
@@ -711,11 +706,7 @@ export default function Quiz() {
   );
 
   function updatePerson(key: keyof Person, value: string) {
-    setPerson((prev) => {
-      const merged = { ...prev, [key]: value };
-      persist({ i, answers, person: merged });
-      return merged;
-    });
+    setPerson((prev) => ({ ...prev, [key]: value }));
   }
 }
 
