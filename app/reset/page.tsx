@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 /**
@@ -10,6 +11,7 @@ import { useEffect, useState } from "react";
 export default function ResetPage() {
   const [done, setDone] = useState(false);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     try {
       localStorage.removeItem("mdm-drives-quiz");
@@ -19,6 +21,7 @@ export default function ResetPage() {
     }
     setDone(true);
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return (
     <div
@@ -38,9 +41,9 @@ export default function ResetPage() {
         <p style={{ fontSize: 14, lineHeight: 1.55, color: "#48584B", margin: "0 0 16px" }}>
           Saved progress and the one-submission lock are cleared. Any response already sent to Firestore is still there — remove it from /admin if you need to.
         </p>
-        <a href="/" style={{ fontSize: 14 }}>
+        <Link href="/" style={{ fontSize: 14 }}>
           Start the quiz
-        </a>
+        </Link>
       </div>
     </div>
   );

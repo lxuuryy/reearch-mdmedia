@@ -268,10 +268,13 @@ export default function Quiz() {
       // the PDF in a new tab. The share sheet is the real "save" on iOS: it has
       // "Save to Files". Must run inside the click gesture, so the blob is
       // pre-built while the results screen is on screen.
+      // Touch devices only. On desktop the OS share sheet is worse than a plain
+      // download, and Windows writes the share title out as a stray .txt file.
       const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
-      if (nav.canShare?.({ files: [file] }) && nav.share) {
+      const touch = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
+      if (touch && nav.canShare?.({ files: [file] }) && nav.share) {
         try {
-          await nav.share({ files: [file], title: pdfFilename });
+          await nav.share({ files: [file] });
           return;
         } catch (err) {
           // AbortError = they dismissed the sheet; anything else falls through.
