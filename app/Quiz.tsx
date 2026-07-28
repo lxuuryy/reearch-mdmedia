@@ -230,16 +230,6 @@ export default function Quiz() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen.kind, hydrated]);
 
-  const restart = () => {
-    if (submittedAt !== null) return; // one submission per browser
-    setI(0);
-    setAnswers({});
-    setPerson({ name: "", email: "", team: "" });
-    savedRef.current = false;
-    setSave("idle");
-    persist({ i: 0, answers: {}, person: { name: "", email: "", team: "" } });
-  };
-
   const SEGS = 12;
   const filled = Math.round((i / (SCREENS.length - 1)) * SEGS);
   const ready = canNext(i, answers, person);
@@ -309,7 +299,6 @@ export default function Quiz() {
             borderRadius: 24,
             boxShadow: "0 20px 44px -26px rgba(28,49,37,0.35)",
             padding: "26px 30px 24px",
-            minHeight: 520,
             display: "flex",
             flexDirection: "column",
             gap: 22,
@@ -321,27 +310,6 @@ export default function Quiz() {
                 <div key={k} style={{ height: 3, borderRadius: 2, flex: 1, background: k < filled ? "#1C3125" : "#E3E6DA", transition: "background .25s ease" }} />
               ))}
             </div>
-            <button
-              onClick={restart}
-              title="Start over"
-              style={{
-                display: submittedAt !== null ? "none" : "flex",
-                width: 24,
-                height: 24,
-                borderRadius: "50%",
-                border: "none",
-                background: "#E3E6DA",
-                color: "#6C7A6E",
-                fontSize: 15,
-                lineHeight: 1,
-                cursor: "pointer",
-                alignItems: "center",
-                justifyContent: "center",
-                flex: "none",
-              }}
-            >
-              ×
-            </button>
           </div>
 
           <div
@@ -415,7 +383,7 @@ export default function Quiz() {
                   </div>
                 </div>
 
-                <div style={{ marginTop: "auto", paddingTop: 14, ...label, letterSpacing: "0.1em" }}>
+                <div style={{ paddingTop: 2, ...label, letterSpacing: "0.1em" }}>
                   Answer how you actually are — not how you think you should be
                 </div>
               </div>
