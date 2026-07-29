@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { DRIVERS, LETTERS, REFLECT, SCENARIOS, STATEMENTS } from "@/lib/quiz-data";
-import { firebaseConfigured, getDb } from "@/lib/firebase";
+import { firebaseConfigured, getDb, RESPONSES_COLLECTION } from "@/lib/firebase";
 
 const ACCENT = "#1B3FE0";
 const ON_ACCENT = "#FFFFFF";
@@ -202,7 +202,7 @@ export default function Quiz() {
     savedRef.current = true;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSave("saving");
-    addDoc(collection(db, "responses"), {
+    addDoc(collection(db, RESPONSES_COLLECTION), {
       person: { name: person.name.trim(), email: person.email.trim(), team: person.team.trim() },
       ratings: Object.fromEntries(STATEMENTS.map((s, n) => [`r${n}`, answers["r" + n] ?? null])),
       statements: STATEMENTS,

@@ -77,22 +77,47 @@ export default function AdminPage() {
   function exportCsv() {
     if (!rows) return;
     const names = DRIVERS.map((d) => d.name);
-    const head = ["Name", "Email", "Team", "Completed", ...names, "Top two"];
-    const lines = [head, ...rows.map((r) => [
-      r.person?.name ?? "",
-      r.person?.email ?? "",
-      r.person?.team ?? "",
-      r.completedAt ?? "",
-      ...names.map((n) => String(r.scores?.[n] ?? "")),
-      (r.topTwo ?? []).join(" & "),
-    ])];
-    const csv = lines.map((l) => l.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
-    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    // Column count is fixed by the questionnaire, so every row lines up even if
+    // an older response is missing a section.
+    const reflectionCount = Math.max(3, ...rows.map((r) => r.reflections?.length ?? 0));
+    const scenarioCount = Math.max(12, ...rows.map((r) => r.scenarios?.length ?? 0));
+
+    const head = [
+      "Name",
+      "Email",
+      "Team",
+      "Completed",
+      ...names,
+      "Top two",
+      ...Array.from({ length: reflectionCount }, (_, k) => `Reflection ${k + 1}`),
+      ...Array.from({ length: scenarioCount }, (_, k) => `Scenario ${k + 1}`),
+    ];
+
+    const lines = [
+      head,
+      ...rows.map((r) => [
+        r.person?.name ?? "",
+        r.person?.email ?? "",
+        r.person?.team ?? "",
+        r.completedAt ? new Date(r.completedAt).toLocaleString("en-GB") : "",
+        ...names.map((n) => String(r.scores?.[n] ?? "")),
+        (r.topTwo ?? []).join(" & "),
+        ...Array.from({ length: reflectionCount }, (_, k) => r.reflections?.[k]?.answer ?? ""),
+        ...Array.from({ length: scenarioCount }, (_, k) => r.scenarios?.[k]?.answer ?? ""),
+      ]),
+    ];
+
+    // CRLF + a UTF-8 BOM so Excel opens it cleanly — without the BOM the em
+    // dashes in the answers come out as mojibake.
+    const csv = lines.map((l) => l.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\r\n");
+    const url = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
     const a = document.createElement("a");
     a.href = url;
     a.download = "what-drives-you-responses.csv";
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
   }
 
   return (

@@ -12,6 +12,13 @@ const firebaseConfig = {
 
 export const firebaseConfigured = Boolean(firebaseConfig.apiKey && firebaseConfig.projectId);
 
+/**
+ * Firestore collection holding one document per completed quiz.
+ * Change this in one place; the quiz, the admin API and firestore.rules all
+ * read it from here (rules need the same name updating by hand).
+ */
+export const RESPONSES_COLLECTION = "what-drives-you-responses";
+
 let app: FirebaseApp | null = null;
 let db: Firestore | null = null;
 

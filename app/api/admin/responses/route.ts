@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { collection, deleteDoc, doc, getDocs, orderBy, query } from "firebase/firestore";
-import { getDb } from "@/lib/firebase";
+import { getDb, RESPONSES_COLLECTION } from "@/lib/firebase";
 
 const PASSWORD = process.env.ADMIN_PASSWORD || "MDMEDIA2026";
 
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const snap = await getDocs(query(collection(db, "responses"), orderBy("completedAt", "desc")));
+    const snap = await getDocs(query(collection(db, RESPONSES_COLLECTION), orderBy("completedAt", "desc")));
     const responses = snap.docs.map((d) => {
       const data = d.data() as Record<string, unknown>;
       const completedAt = data.completedAt as { toDate?: () => Date } | undefined;
@@ -47,7 +47,7 @@ export async function DELETE(req: Request) {
   }
 
   try {
-    await deleteDoc(doc(db, "responses", id));
+    await deleteDoc(doc(db, RESPONSES_COLLECTION, id));
     return NextResponse.json({ ok: true });
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
